@@ -4,6 +4,16 @@ An AI-powered HR screening agent that automates the first phase of the hiring pr
 
 The system ingests resumes, detects duplicates, evaluates candidates against a job description, validates the evaluation with a critic agent, calculates a weighted screening score, ranks candidates, creates interview invitation drafts for the shortlist, and requires human approval before an invitation is approved.
 
+
+## Architecture
+
+
+![HR AI Hiring Agent Architecture](architecture.png)
+
+The system uses a LangGraph-based multi-agent pipeline to evaluate resumes against a job description, validate evaluations with a critic agent, calculate weighted screening scores, rank candidates, generate interview invitation drafts, and require human approval before an invitation is approved.
+
+
+
 ## Project Architecture
 
 ```text
