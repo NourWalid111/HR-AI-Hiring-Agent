@@ -30,3 +30,5 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.log
+# Generated demo results
+results/
