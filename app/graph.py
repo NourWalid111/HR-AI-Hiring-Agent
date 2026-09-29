@@ -6,7 +6,9 @@ from app.agents import (
     evaluate_candidate,
     critique_candidate
 )
+
 from app.scoring import calculate_overall_score
+
 from app.database import save_candidate
 
 
@@ -27,6 +29,7 @@ class CandidateState(TypedDict, total=False):
 def evaluate_node(state: CandidateState):
 
     try:
+
         evaluation = evaluate_candidate(
             resume_text=state["resume"]["text"],
             job_description=state["job_description"],
@@ -45,9 +48,23 @@ def evaluate_node(state: CandidateState):
         }
 
 
+def after_evaluate(state: CandidateState):
+
+    if state.get("error"):
+
+        return "error"
+
+    if state.get("evaluation") is None:
+
+        return "error"
+
+    return "critic"
+
+
 def critic_node(state: CandidateState):
 
     try:
+
         critic_result = critique_candidate(
             resume_text=state["resume"]["text"],
             evaluation=state["evaluation"]
@@ -68,20 +85,33 @@ def critic_node(state: CandidateState):
 def should_retry(state: CandidateState):
 
     if state.get("error"):
+
         return "error"
 
-    critic_result = state.get("critic_result")
+    critic_result = state.get(
+        "critic_result"
+    )
 
     if critic_result is None:
+
         return "error"
 
     if critic_result.passed:
+
         return "score"
 
-    retry_count = state.get("retry_count", 0)
-    max_retries = state.get("max_retries", 1)
+    retry_count = state.get(
+        "retry_count",
+        0
+    )
+
+    max_retries = state.get(
+        "max_retries",
+        1
+    )
 
     if retry_count < max_retries:
+
         return "retry"
 
     return "error"
@@ -89,7 +119,10 @@ def should_retry(state: CandidateState):
 
 def retry_node(state: CandidateState):
 
-    retry_count = state.get("retry_count", 0)
+    retry_count = state.get(
+        "retry_count",
+        0
+    )
 
     return {
         "retry_count": retry_count + 1,
@@ -101,16 +134,30 @@ def retry_evaluate_node(state: CandidateState):
 
     try:
 
-        critic_result = state.get("critic_result")
+        critic_result = state.get(
+            "critic_result"
+        )
 
         feedback = ""
 
         if critic_result:
 
-            feedback = (
-                critic_result.explanation
-                + "\n"
-                + "\n".join(critic_result.issues)
+            feedback_parts = []
+
+            if critic_result.explanation:
+
+                feedback_parts.append(
+                    critic_result.explanation
+                )
+
+            if critic_result.issues:
+
+                feedback_parts.extend(
+                    critic_result.issues
+                )
+
+            feedback = "\n".join(
+                feedback_parts
             )
 
         evaluation = evaluate_candidate(
@@ -129,6 +176,19 @@ def retry_evaluate_node(state: CandidateState):
         return {
             "error": str(e)
         }
+
+
+def after_retry_evaluate(state: CandidateState):
+
+    if state.get("error"):
+
+        return "error"
+
+    if state.get("evaluation") is None:
+
+        return "error"
+
+    return "critic"
 
 
 def score_node(state: CandidateState):
@@ -184,7 +244,9 @@ def error_node(state: CandidateState):
 
 def build_candidate_graph():
 
-    graph = StateGraph(CandidateState)
+    graph = StateGraph(
+        CandidateState
+    )
 
     graph.add_node(
         "evaluate",
@@ -226,9 +288,13 @@ def build_candidate_graph():
         "evaluate"
     )
 
-    graph.add_edge(
+    graph.add_conditional_edges(
         "evaluate",
-        "critic"
+        after_evaluate,
+        {
+            "critic": "critic",
+            "error": "error"
+        }
     )
 
     graph.add_conditional_edges(
@@ -246,9 +312,13 @@ def build_candidate_graph():
         "retry_evaluate"
     )
 
-    graph.add_edge(
+    graph.add_conditional_edges(
         "retry_evaluate",
-        "critic"
+        after_retry_evaluate,
+        {
+            "critic": "critic",
+            "error": "error"
+        }
     )
 
     graph.add_edge(

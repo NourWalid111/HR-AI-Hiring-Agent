@@ -1,4 +1,3 @@
-import os
 import time
 
 from dotenv import load_dotenv
@@ -22,7 +21,8 @@ load_dotenv()
 # ============================================================
 
 llm = ChatGoogleGenerativeAI(
-    model="gemini-3.6-flash"
+    model="gemini-3.6-flash",
+    temperature=0,
 )
 
 
@@ -31,11 +31,13 @@ llm = ChatGoogleGenerativeAI(
 # ============================================================
 
 structured_llm = llm.with_structured_output(
-    CandidateEvaluation
+    CandidateEvaluation,
+    method="json_schema"
 )
 
 critic_llm = llm.with_structured_output(
-    CriticResult
+    CriticResult,
+    method="json_schema"
 )
 
 
@@ -51,26 +53,29 @@ def safe_invoke(
     """
     Safely invoke a Gemini chain.
 
-    Rate-limit/quota errors are reported immediately.
-    Other temporary errors may be retried.
+    Quota errors are reported immediately.
+    Temporary service/network errors may be retried once.
     """
 
     for attempt in range(max_retries + 1):
 
         try:
+
             return llm_chain.invoke(prompt)
 
         except Exception as e:
 
             error_message = str(e)
+            error_lower = error_message.lower()
 
             # ------------------------------------------------
-            # GEMINI QUOTA / RATE LIMIT
+            # QUOTA / RATE LIMIT
             # ------------------------------------------------
 
             if (
                 "429" in error_message
-                or "RESOURCE_EXHAUSTED" in error_message
+                or "resource_exhausted" in error_lower
+                or "quota exceeded" in error_lower
             ):
 
                 raise RuntimeError(
@@ -85,17 +90,17 @@ def safe_invoke(
             # ------------------------------------------------
 
             temporary_errors = [
-    "timeout",
-    "connection",
-    "temporarily unavailable",
-    "internal server error",
-    "503",
-    "unavailable",
-    "high demand"
-]
+                "timeout",
+                "connection",
+                "temporarily unavailable",
+                "internal server error",
+                "503",
+                "unavailable",
+                "high demand"
+            ]
 
             if any(
-                keyword in error_message.lower()
+                keyword in error_lower
                 for keyword in temporary_errors
             ):
 
@@ -121,6 +126,12 @@ def safe_invoke(
             # ------------------------------------------------
 
             raise
+
+
+# ============================================================
+# CANDIDATE EVALUATION AGENT
+# ============================================================
+
 def evaluate_candidate(
     resume_text: str,
     job_description: str,
@@ -140,13 +151,13 @@ The validation agent reported:
 
 {critic_feedback}
 
-You MUST carefully review the original resume again and
-correct the problems identified above.
+You MUST carefully review the original resume again
+and correct the problems identified above.
 
 Do not blindly repeat the previous evaluation.
 
-Make sure every score and every claim is supported by
-the resume.
+Make sure every score and every claim is supported
+by the resume.
 """
 
     prompt = f"""
@@ -186,12 +197,15 @@ Extract and evaluate the candidate's relevant skills,
 experience, strengths, gaps, and supporting evidence.
 """
 
-    result = safe_invoke(
+    return safe_invoke(
         structured_llm,
         prompt
     )
 
-    return result
+
+# ============================================================
+# CRITIC / REFLECTION AGENT
+# ============================================================
 
 def critique_candidate(
     resume_text: str,
@@ -266,9 +280,7 @@ scores or claims are not supported by the original resume.
 Explain your reasoning briefly in "explanation".
 """
 
-    result = safe_invoke(
+    return safe_invoke(
         critic_llm,
         prompt
     )
-
-    return result
