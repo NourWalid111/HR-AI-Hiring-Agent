@@ -1,0 +1,31 @@
+Junior AI Engineer
+
+We are looking for a Junior AI Engineer to join our AI engineering team.
+
+Required Skills:
+- Python
+- Machine Learning
+- Deep Learning
+- SQL
+- REST APIs
+- Git
+
+Preferred Skills:
+- PyTorch or TensorFlow
+- Hugging Face
+- RAG
+- Vector databases
+- LangChain
+- Docker
+- Cloud computing
+
+Experience:
+- 1+ year of relevant AI/ML/software engineering experience.
+
+Responsibilities:
+- Build and integrate AI/ML applications.
+- Develop Python-based services and APIs.
+- Work with machine learning and deep learning models.
+- Build and maintain RAG-based applications.
+- Work with databases and external APIs.
+- Collaborate with software engineering teams.
