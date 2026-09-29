@@ -53,6 +53,20 @@ Interview Draft
 Human HR Approval
 ```
 
+## Demo
+
+The system was tested using fictional resumes and demonstrates the complete downstream hiring workflow:
+
+- Candidate ranking
+- Top 5% shortlisting
+- Interview invitation generation
+- Human approval/rejection
+- Graceful handling of API failures
+
+![HR AI Hiring Agent Demo](demo.png)
+
+In the demonstrated run, two candidates were successfully evaluated and validated by the critic agent. The third candidate encountered a Gemini API quota limitation, which the system handled gracefully without crashing.
+
 ## Main Features
 
 ### 1. Resume Ingestion
